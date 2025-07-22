@@ -34,6 +34,7 @@ type AnsibleTestSpec struct {
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:default:="dataplane-ansible-ssh-private-key-secret"
 	// ComputeSSHKeySecretName is the name of the k8s secret that contains an ssh key for computes.
 	// The key is mounted to ~/.ssh/id_ecdsa in the ansible pod
@@ -41,6 +42,7 @@ type AnsibleTestSpec struct {
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:default:=""
 	// WorkloadSSHKeySecretName is the name of the k8s secret that contains an ssh key for the ansible workload.
 	// The key is mounted to ~/test_keypair.key in the ansible pod
@@ -48,7 +50,7 @@ type AnsibleTestSpec struct {
 
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// +kubebuilder:default:=""
+	// +kubebuilder:validation:Format=uri
 	// AnsibleGitRepo - git repo to clone into container
 	AnsibleGitRepo string `json:"ansibleGitRepo"`
 
@@ -63,7 +65,7 @@ type AnsibleTestSpec struct {
 	// +kubebuilder:default:=""
 	// AnsibleCollections - extra ansible collections to install in addition
 	// to the ones existing in the requirements.yaml
-	AnsibleCollections string `json:"ansibleCollections,omitempty"`
+	AnsibleCollections string `json:"ansibleCollections"`
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -71,19 +73,19 @@ type AnsibleTestSpec struct {
 	// AnsibleVarFiles - interface to create ansible var files. Those get added
 	// to the service config dir in /etc/test_operator/<file> and passed to the
 	// ansible command using -e @/etc/test_operator/<file>
-	AnsibleVarFiles string `json:"ansibleVarFiles,omitempty"`
+	AnsibleVarFiles string `json:"ansibleVarFiles"`
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:default:=""
 	// AnsibleExtraVars - string to pass parameters to ansible
-	AnsibleExtraVars string `json:"ansibleExtraVars,omitempty"`
+	AnsibleExtraVars string `json:"ansibleExtraVars"`
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:default:=""
 	// AnsibleInventory - string that contains the inventory file content
-	AnsibleInventory string `json:"ansibleInventory,omitempty"`
+	AnsibleInventory string `json:"ansibleInventory"`
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -103,7 +105,8 @@ type AnsibleTestWorkflowSpec struct {
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MaxLength:=100
+	// +kubebuilder:validation:MaxLength=100
+	// +kubebuilder:validation:Pattern:=^[a-z0-9-]+$
 	// Name of a workflow step. The step name will be used for example to create
 	// a logs directory.
 	StepName string `json:"stepName"`
@@ -114,18 +117,21 @@ type AnsibleTestWorkflowSpec struct {
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:MaxLength=253
 	// ComputeSSHKeySecretName is the name of the k8s secret that contains an ssh key for computes.
 	// The key is mounted to ~/.ssh/id_ecdsa in the ansible pod
 	ComputesSSHKeySecretName string `json:"computeSSHKeySecretName"`
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:MaxLength=253
 	// WorkloadSSHKeySecretName is the name of the k8s secret that contains an ssh key for the ansible workload.
 	// The key is mounted to ~/test_keypair.key in the ansible pod
 	WorkloadSSHKeySecretName string `json:"workloadSSHKeySecretName"`
 
 	// +kubebuilder:validation:Optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:Format=uri
 	// AnsibleGitRepo - git repo to clone into container
 	AnsibleGitRepo string `json:"ansibleGitRepo,omitempty"`
 

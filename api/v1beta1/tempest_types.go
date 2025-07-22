@@ -38,11 +38,15 @@ const (
 // inside the test pod and uploaded to openstack
 type ExtraImagesType struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Format=uri
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// URL that points to a location where the image is located
 	URL string `json:"URL"`
 
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern:="^[a-z0-9._-]+$"
 	// Name of the image
 	Name string `json:"name"`
 
@@ -71,6 +75,8 @@ type ExtraImagesType struct {
 	ID string `json:"ID"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=3600
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:default:=300
 	// Timeout duration for an image to reach the active state after its creation
@@ -83,21 +89,30 @@ type ExtraImagesType struct {
 
 type ExtraImagesFlavorType struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern:="^[a-z0-9._-]+$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// Name of the flavor that should be created
 	Name string `json:"name"`
 
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=1048576
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// How much RAM should be allocated when this flavor is used
 	RAM int64 `json:"RAM"`
 
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=10240
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// How much disk space should be allocated when this flavor is used
 	Disk int64 `json:"disk"`
 
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=128
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// How many vcpus should be allocated when this flavor is used
 	Vcpus int64 `json:"vcpus"`
@@ -119,11 +134,13 @@ type ExtraImagesFlavorType struct {
 // from an external resource
 type ExternalPluginType struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Format=uri
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// URL that points to a git repository containing an external plugin.
 	Repository string `json:"repository"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Format=uri
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// URL that points to a repository that contains a change that should be
 	// applied to the repository defined by Repository (ChangeRefspec must be
@@ -131,6 +148,7 @@ type ExternalPluginType struct {
 	ChangeRepository string `json:"changeRepository,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxLength=253
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// ChangeRefspec specifies which change the remote repository should be
 	// checked out to (ChangeRepository must be defined as well).
@@ -160,6 +178,8 @@ type TempestRunSpec struct {
 	ExpectedFailuresList string `json:"expectedFailuresList"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=128
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:default:=0
 	// Concurrency value that is passed to tempest via --concurrency
@@ -324,6 +344,7 @@ type TempestconfRunSpec struct {
 	Image string `json:"image"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:default:=0
 	// The content of this variable will be passed to discover-tempest-config via
@@ -331,6 +352,7 @@ type TempestconfRunSpec struct {
 	FlavorMinMem int64 `json:"flavorMinMem"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:default:=0
 	// The content of this variable will be passed to discover-tempest-config via
@@ -365,8 +387,9 @@ type TempestconfRunSpec struct {
 	// that executes discover-tempest-config (override values).
 	Overrides string `json:"overrides"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:default:=0
 	// The content of this variable will be passed to discover-tempest-config via
 	// --timeout

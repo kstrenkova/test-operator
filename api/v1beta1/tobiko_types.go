@@ -58,6 +58,7 @@ type TobikoSpec struct {
 	PreventCreate bool `json:"preventCreate"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Maximum=128
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:default:=4
 	// Number of processes/workers used to run tobiko tests - value 0 results in automatic decision
@@ -137,6 +138,7 @@ type TobikoWorkflowSpec struct {
 	PreventCreate *bool `json:"preventCreate,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Maximum=128
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// Number of processes/workers used to run tobiko tests - value 0 results in automatic decission
 	NumProcesses *uint8 `json:"numProcesses,omitempty"`
@@ -174,11 +176,9 @@ type TobikoWorkflowSpec struct {
 	KubeconfigSecretName string `json:"kubeconfigSecretName,omitempty"`
 
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MaxLength:=100
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// +kubebuilder:default:=""
+	// +kubebuilder:validation:MaxLength=100
+	// +kubebuilder:validation:Pattern:=^[a-z0-9-]+$
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	// +kubebuilder:default:=""
 	// A parameter that contains a definition of a single workflow step.
 	StepName string `json:"stepName"`
 }
