@@ -23,8 +23,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -51,14 +49,11 @@ func (r *HorizonTest) ValidateCreate() (admission.Warnings, error) {
 
 	var allWarnings admission.Warnings
 
-	if len(r.Spec.ExtraConfigmapsMounts) > 0 {
-		allWarnings = append(allWarnings, "The ExtraConfigmapsMounts parameter will be" +
-			" deprecated! Please use ExtraMounts parameter instead!")
-	}
+	// Deprecation warnings
+	allWarnings = CheckExtraConfigmapsDeprecation(allWarnings, r.Spec.ExtraConfigmapsMounts)
 
-	if r.Spec.Privileged {
-		allWarnings = append(allWarnings, fmt.Sprintf(WarnPrivilegedModeOn, "HorizonTest"))
-	}
+	// Privileged mode warnings
+	allWarnings = CheckPrivilegedWarning(allWarnings, r.Spec.Privileged, r.Kind)
 
 	return allWarnings, nil
 }
