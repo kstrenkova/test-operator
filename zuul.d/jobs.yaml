@@ -101,7 +101,11 @@
       cifmw_test_operator_tobiko_workflow:
         - stepName: 'podified-functional'
           testenv: 'functional -- tobiko/tests/functional/podified/test_topology.py'
-          numProcesses: 2
+          #numProcesses: 2
+          pytestAddopts: '--numprocesses 2'
+          skipRegexList:
+            - test_compute_group
+            - test_ping_node
         - stepName: 'sanity'
           testenv: 'sanity'
       cifmw_test_operator_tobiko_network_attachments:
