@@ -20,7 +20,10 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	nad "github.com/openstack-k8s-operators/lib-common/modules/common/networkattachment"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/pvc"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/rolebinding"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/serviceaccount"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	testutil "github.com/openstack-k8s-operators/test-operator/internal/util"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -75,6 +78,13 @@ const (
 	// RequeueAfterValue tells how much time should we wait before calling Reconcile
 	// loop again.
 	RequeueAfterValue = time.Second * 60
+
+	// RbacRequeueAfterValue tells how much time should we wait before re-reconciling
+	// a ServiceAccount or RoleBinding that could not be found right after it was created.
+	RbacRequeueAfterValue = time.Second * 10
+
+	// privilegedSCCClusterRole is the ClusterRole OpenShift generates for the privileged SCC.
+	privilegedSCCClusterRole = "system:openshift:scc:privileged"
 )
 
 // Static error definitions for test operations
@@ -102,6 +112,12 @@ var (
 
 	// ErrMissingRequiredKey indicates that a required key is missing in a resource.
 	ErrMissingRequiredKey = errors.New("missing required key")
+
+	// ErrCreateServiceAccount indicates that the service account of a privileged pod could not be created.
+	ErrCreateServiceAccount = errors.New("failed to create service account")
+
+	// ErrGrantPrivilegedSCC indicates that the privileged SCC could not be granted to a service account.
+	ErrGrantPrivilegedSCC = errors.New("failed to grant the privileged SCC")
 )
 
 // Reconciler provides common functionality for all test framework reconcilers
@@ -170,9 +186,17 @@ func (r *Reconciler) CreatePod(
 		return ctrl.Result{}, err
 	}
 
-	err = controllerutil.SetControllerReference(h.GetBeforeObject(), podSpec, r.GetScheme())
+	instance := h.GetBeforeObject()
+
+	err = controllerutil.SetControllerReference(instance, podSpec, r.GetScheme())
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if podSpec.Labels[testutil.PrivilegedLabel] == "true" {
+		if err := r.CreatePrivilegedResources(ctx, &h, instance, podSpec); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if err := r.Client.Create(ctx, podSpec); err != nil {
@@ -644,22 +668,63 @@ func (r *Reconciler) GetPodIfExists(
 	return pod, nil
 }
 
-// GetCommonRbacRules returns the common RBAC rules for test operations, with optional privileged permissions
-func GetCommonRbacRules(privileged bool) []rbacv1.PolicyRule {
-	rbacPolicyRule := rbacv1.PolicyRule{
-		APIGroups:     []string{"security.openshift.io"},
-		ResourceNames: []string{"nonroot", "nonroot-v2"},
-		Resources:     []string{"securitycontextconstraints"},
-		Verbs:         []string{"use"},
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=create;delete;get;list;patch;update;watch
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=create;delete;get;list;patch;update;watch
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,resourceNames={"system:openshift:scc:privileged"},verbs=bind
+
+// CreatePrivilegedResources ensures a ServiceAccount allowed to use the privileged SCC
+// exists for instance, and points podSpec at it.
+func (r *Reconciler) CreatePrivilegedResources(
+	ctx context.Context,
+	h *helper.Helper,
+	instance client.Object,
+	podSpec *corev1.Pod,
+) error {
+	serviceAccountName := instance.GetName() + "-privileged"
+
+	podServiceAccount := serviceaccount.NewServiceAccount(
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceAccountName,
+				Namespace: podSpec.Namespace,
+			},
+		},
+		RbacRequeueAfterValue,
+	)
+
+	if _, err := podServiceAccount.CreateOrPatch(ctx, h); err != nil {
+		return fmt.Errorf("%w %s: %w", ErrCreateServiceAccount, serviceAccountName, err)
 	}
 
-	if privileged {
-		rbacPolicyRule.ResourceNames = append(
-			rbacPolicyRule.ResourceNames,
-			[]string{"anyuid", "privileged"}...)
+	privilegedRoleBinding := rolebinding.NewRoleBinding(
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceAccountName + "-scc",
+				Namespace: podSpec.Namespace,
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      serviceAccountName,
+					Namespace: podSpec.Namespace,
+				},
+			},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     privilegedSCCClusterRole,
+			},
+		},
+		RbacRequeueAfterValue,
+	)
+
+	if _, err := privilegedRoleBinding.CreateOrPatch(ctx, h); err != nil {
+		return fmt.Errorf("%w to %s: %w", ErrGrantPrivilegedSCC, serviceAccountName, err)
 	}
 
-	return []rbacv1.PolicyRule{rbacPolicyRule}
+	podSpec.Spec.ServiceAccountName = serviceAccountName
+
+	return nil
 }
 
 // EnsureNetworkAttachments fetches NetworkAttachmentDefinitions and creates annotations
