@@ -146,6 +146,7 @@ type CommonTestStatus struct {
 type WorkflowCommonOptions struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:validation:optional
+	// +kubebuilder:default=false
 	// +optional
 	// Use with caution! This parameter specifies whether test-operator should spawn test
 	// pods with allowedPrivilegedEscalation: true and the default capabilities on
